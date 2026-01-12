@@ -1,0 +1,209 @@
+{
+  "name": "DM Chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "path": "3a3f9745-36e7-4f02-b7ca-c6babcfcadcb",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -240,
+        80
+      ],
+      "id": "e19b9375-c09d-4835-a9f5-c96307bf5775",
+      "name": "Webhook",
+      "webhookId": "3a3f9745-36e7-4f02-b7ca-c6babcfcadcb"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0bb08ddb-917b-4d65-ac57-7d4c4d160170",
+              "leftValue": "={{ $json.query['hub.mode'] }}",
+              "rightValue": "subscribe",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "9cf36bc5-aca4-4e85-b6e4-1f6d06c9762c",
+              "leftValue": "={{ $json.query['hub.verify_token'] }}",
+              "rightValue": "testn8n",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        208,
+        -64
+      ],
+      "id": "8c3eaadb-0a84-4ed2-903f-8e26f0ebeb49",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $('Webhook').item.json.query['hub.challenge'] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        736,
+        -80
+      ],
+      "id": "3d920773-9e41-427a-9299-90c7fda86cce",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.entry[0].messaging[0].message.text }}",
+        "options": {
+          "systemMessage": "You are a helpful assistant for my instagram account  , your job is to answer  my instagram followers or dm senders questions"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        304,
+        96
+      ],
+      "id": "39fafe07-fb63-40da-b933-53271c7c3e26",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "openrouter/auto",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        224,
+        288
+      ],
+      "id": "4ae1ac7b-ffef-4d51-ac63-b06366170e25",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "wew2XJyGFRl3eWb9",
+          "name": "OpenRouter account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.instagram.com/v22.0/{{ $('Webhook').item.json.body.entry[0].messaging[0].recipient.id }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer IGAAVnd8LoYANBZAGJ1N3YyeGk5YklwTWdmb0RmRWxQdG1lV2lGNkFjdTZACZAXJ0VzJQQmhWZAGdlTEhwbWF2dzkwZAWtTeUZAyUk1vUG1MOS1pR0xMV3A0MlBiVkNBdXRpMVhBOEZAhSmNILWpyUTlVNENFSDZA2R2I5LTNVS0hSN1FCbwZDZD"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"recipient\": {\n    \"id\": \"{{ $('Webhook').item.json.body.entry[0].messaging[0].sender.id }} \"\n  },\n  \"message\": {\n    \"text\": \"{{ $json.output }}\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        736,
+        96
+      ],
+      "id": "5fde288d-edaa-4b51-be4a-78aaa03e10b3",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "8576d34b-70f5-4685-80a1-694c2d434321",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fe2d3491c277035648665bed0295965f6af031264ff6223dd4630f69e2258878"
+  },
+  "id": "bzMZk775xROMpMsy",
+  "tags": []
+}
